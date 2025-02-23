@@ -1,0 +1,7 @@
+-cp src
+-cp test
+-main test.TestMain
+-js bin/app.js
+-lib utest
+
+# --cmd command

@@ -1,0 +1,10 @@
+-cp src
+-cp test
+-main Main
+-js  bin/app.js
+# -dce full
+# --library hxasync
+# --resource assets/file.txt@file.txt ресурсы
+-lib utest
+# --interp
+# --cmd command
