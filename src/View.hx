@@ -1,3 +1,4 @@
+import haxe.Constraints.Function;
 import js.html.LabelElement;
 import js.html.DivElement;
 import js.html.TextAreaElement;
@@ -10,15 +11,16 @@ import js.html.HTMLCollection;
 import js.Browser;
 import Lambda;
 
+typedef LoginFunc = String->String->Function->Void;
 class View
 {
 	var auth:Bool;
 	var document = Browser.document;
-	var authDiv:DOMElement;
 	var username:String;
-	var password:String;
 	var messages:Array<{from:String, message:String, date:String}>;
 	var contacts:Array<{id:String, username:String, status:String}>;
+    public var loginFunc:LoginFunc;
+    public  var deleteMe:Function;
 
 	public function new(auth)
 	{
@@ -75,6 +77,7 @@ class View
 				{
 					event.preventDefault();
 					auth = false;
+                    deleteMe();
 					trace(auth);
 					render();
 				}
@@ -134,6 +137,7 @@ class View
 	private function _loginPasswordEvent():Void
 	{
 		var buttonLoginNode:ButtonElement = cast document.getElementById("login");
+        trace("dasdasdasdsad");
 		buttonLoginNode.onclick = function(event:Event)
 		{
 			event.preventDefault();
@@ -143,8 +147,10 @@ class View
 			{
 				trace(usernameNode.value);
 				trace(passwordNode.value);
-				auth = true;
-				onStart();
+                loginFunc(usernameNode.value, passwordNode.value, function(data) {
+                    this.auth = true;
+                    render();
+                });
 				// TODO controller callback
 			} else
 			{
@@ -205,7 +211,7 @@ class View
 		var contactNode = document.createElement("li");
 		contactNode.className = "contact";
 		contactNode.id = id;
-		contactNode.textContent = name + "|" + status;
+		contactNode.textContent = name + " | " + status;
 		return contactNode;
 	}
 

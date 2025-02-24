@@ -1,3 +1,4 @@
+import haxe.Constraints.Function;
 import js.lib.Promise;
 import js.Browser;
 import js.html.Response;
@@ -9,9 +10,12 @@ class RegistarionAutentication
 {
 	private var _token:Null<String>;
 	var storage:Storage;
+	var socket:WebSocketClient;
+	public var runSocket:Function;
 
-	public function new()
+	public function new(soket:WebSocketClient)
 	{
+		this.socket = soket;
 		storage = Browser.getLocalStorage();
 		token = storage.getItem("token");
 	}
@@ -64,8 +68,7 @@ class RegistarionAutentication
 				trace(error);
 			});
 	}
-
-	public function login(username:String, password:String):Void
+	public function login(username:String, password:String, func:Function):Void
 	{
 		var headers = new js.html.Headers([["Content-Type", "application/json"]]);
 		var data = {"account": {"username": username, "password": password}};
@@ -87,9 +90,12 @@ class RegistarionAutentication
 					if (data.status == "success")
 					{
 						_token = data.token;
-						trace(data);
+						socket.token = _token;
+						runSocket(_token);
+						func();
 						storage.setItem("token", _token);
 					}
+					trace(data);
 				} catch (e)
 				{
 					trace(e);

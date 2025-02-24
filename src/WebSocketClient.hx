@@ -5,12 +5,12 @@ import haxe.Json;
 
 class WebSocketClient
 {
-	private var _token:String;
+	private var _token:Null<String>;
 	private var _baseurl:String = "ws://localhost:4000/websocket";
 	private var _url:String;
 	private var _socket:WebSocket;
 
-	public function new(token:String)
+	public function new(token:Null<String>)
 	{
 		this._token = token;
 		_url = _baseurl + "?token=" + _token;
@@ -39,6 +39,19 @@ class WebSocketClient
 		_onError();
 		_onMessage();
 	}
+
+	public var token(get, set):String;
+
+	public function get_token():Null<String>
+	{
+		return _token;
+	}
+
+	public function set_token(value):Null<String>
+		{
+			_token = value;
+			return _token;
+		}
 
 	public function send(values:String):Void
 	{
