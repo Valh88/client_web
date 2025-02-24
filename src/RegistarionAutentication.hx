@@ -3,13 +3,17 @@ import js.Browser;
 import js.html.Response;
 import js.html.Request;
 import js.html.RequestInit;
+import js.html.Storage;
 
 class RegistarionAutentication
 {
 	private var _token:Null<String>;
+	var storage:Storage;
 
 	public function new()
 	{
+		storage = Browser.getLocalStorage();
+		token = storage.getItem("token");
 	}
 
 	public function getMe():Void
@@ -84,6 +88,7 @@ class RegistarionAutentication
 					{
 						_token = data.token;
 						trace(data);
+						storage.setItem("token", _token);
 					}
 				} catch (e)
 				{
@@ -105,7 +110,7 @@ class RegistarionAutentication
 				method: "DELETE",
 				headers: headers
 			};
-
+		storage.clear();
 		Browser.window.fetch("http://127.0.0.1:4000/api/me?token=" + this?._token, options)
 			.then(function(response)
 			{

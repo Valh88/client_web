@@ -8,3 +8,4 @@
 -lib utest
 # --interp
 # --cmd command
+# haxelib run formatter -s src      
