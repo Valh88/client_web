@@ -16,20 +16,31 @@ class Controller
 		{
 			_socket = new WebSocketClient(data);
 
-			_socket.addContacts = function(data) {
+			_socket.addContacts = function(data)
+			{
 				trace(data.contacts);
 				_view.contacts = data.contacts;
 				_view.renderContacts();
 			}
 
-			_socket.addMessages = function(data) {
-				// _view.messages.push(data.new_messages);
+			_socket.addMessages = function(data)
+			{
 				var array = data.new_messages.concat(_view.messages);
 				trace(array);
-				trace("123123123");
-				trace(data);
 				_view.messages = array;
 				_view.renderMessages();
+			}
+
+			_socket.addMessage = function(data)
+			{
+				// {message: 'dasdasd', type: 'private', from: 2}
+				_view.messages.push({from: data.from, message: data.message, date: "10:10"});
+				_view.renderMessages();
+			}
+
+			_socket.changeStatusContact = function(data)
+			{
+				_view.changeContactStatus(data);
 			}
 
 			_socket.connect();

@@ -1,3 +1,6 @@
+import js.html.UListElement;
+import js.html.LIElement;
+import haxe.Json;
 import haxe.Constraints.Function;
 import js.html.LabelElement;
 import js.html.DivElement;
@@ -12,33 +15,33 @@ import js.Browser;
 import Lambda;
 
 typedef LoginFunc = String->String->Function->Void;
+typedef SendFunc = Dynamic<{type:String, message:{from:String, to:String, message:String}}>->Void;
+typedef Message = Dynamic<{type:String, message:{from:String, to:String, message:String}}>;
+
 class View
 {
 	var auth:Bool;
 	var document = Browser.document;
 	var username:String;
-	var messages:Array<{from:String, message:String, date:String}>;
-	var contacts:Array<{id:String, username:String, status:String}>;
-    public var loginFunc:LoginFunc;
-    public  var deleteMe:Function;
+	var userId:String;
+
+	public var messages:Array<{from:String, message:String, date:String}>;
+	public var contacts:Array<{user:String, username:String, status:String}>;
+
+	var targetUserId:String;
+
+	public var loginFunc:LoginFunc;
+	public var deleteMe:Function;
+	public var getMe:Function;
+	public var send:SendFunc;
+	public var socket:WebSocketClient;
 
 	public function new(auth)
 	{
 		this.auth = auth;
-		contacts = [
-			{id: "id1", username: "username1", status: "online"},
-			{id: "id2", username: "username2", status: "ofline"},
-			{id: "id3", username: "username3", status: "ofline"},
-			{id: "id4", username: "username4", status: "online"},
-			{id: "id5", username: "username5", status: "online"},
-		];
-		messages = [
-			{from: "id1", message: "message1", date: "11:40"},
-			{from: "id2", message: "message2", date: "11:40"},
-			{from: "id3", message: "message3", date: "11:40"},
-			{from: "id4", message: "message4", date: "11:40"},
-			{from: "id5", message: "message5", date: "11:40"},
-		];
+		contacts = [];
+		messages = [];
+
 		username = "Я";
 	}
 
@@ -51,8 +54,8 @@ class View
 
 	public function debug():Void
 	{
-		_renderContacts();
-		_renderMessages();
+		renderContacts();
+		renderMessages();
 	}
 
 	public function changeMain():Void
@@ -77,8 +80,8 @@ class View
 				{
 					event.preventDefault();
 					auth = false;
-                    deleteMe();
-					trace(auth);
+					deleteMe();
+					socket.close();
 					render();
 				}
 				title[0].appendChild(button);
@@ -137,7 +140,6 @@ class View
 	private function _loginPasswordEvent():Void
 	{
 		var buttonLoginNode:ButtonElement = cast document.getElementById("login");
-        trace("dasdasdasdsad");
 		buttonLoginNode.onclick = function(event:Event)
 		{
 			event.preventDefault();
@@ -147,10 +149,19 @@ class View
 			{
 				trace(usernameNode.value);
 				trace(passwordNode.value);
-                loginFunc(usernameNode.value, passwordNode.value, function(data) {
-                    this.auth = true;
-                    render();
-                });
+				loginFunc(usernameNode.value, passwordNode.value, function(data)
+				{
+					this.auth = true;
+					getMe(function(data)
+					{
+						trace(data);
+						trace("getme");
+						userId = data.user.id;
+						username = data.user.username;
+					});
+					render();
+				});
+
 				// TODO controller callback
 			} else
 			{
@@ -170,10 +181,15 @@ class View
 			var messageNode:TextAreaElement = cast document.getElementById("textArea");
 			if (messageNode.value != null)
 			{
-				messages.push({from: "me", message: messageNode.value, date: "14:40"});
+				messages.push({from: targetUserId, message: messageNode.value, date: "14:40"}); // заглушка targetUserID
+				var data = {type: "private", message: {from: userId, to: targetUserId, message: messageNode.value}};
+				trace(Json.stringify(data));
+				socket.sendDynamic(data);
+				trace(messages);
+
 				messageNode.value = "";
 			}
-			render();
+			renderMessages();
 		}
 	}
 
@@ -209,6 +225,19 @@ class View
 	private function contactNode(name:String, status:String, id:String):Element
 	{
 		var contactNode = document.createElement("li");
+		contactNode.onclick = function(event:Event)
+		{
+			if (targetUserId != null)
+			{
+				var d:LIElement = cast document.getElementById(targetUserId);
+				d.className = "contact";
+			};
+			var li:LIElement = cast event.target;
+			targetUserId = li.id;
+			li.className = "contact li-contact";
+			trace(targetUserId);
+			renderMessages();
+		}
 		contactNode.className = "contact";
 		contactNode.id = id;
 		contactNode.textContent = name + " | " + status;
@@ -221,25 +250,30 @@ class View
 		return contacts;
 	}
 
-	private function _renderContacts():Void
+	public function renderContacts():Void
 	{
 		var contactsNode = contactsNode();
 		contactsNode.innerHTML = "";
 		for (contact in contacts)
 		{
-			var contactNode = contactNode(contact.username, contact.status, contact.id);
+			var contactNode = contactNode(contact.username, contact.status, contact.user);
 			contactsNode.appendChild(contactNode);
 		}
 	}
 
-	private function _renderMessages():Void
+	public function renderMessages():Void
 	{
 		var messagesNode = messagesNode();
-		for (message in messages)
+		messagesNode.innerHTML = "";
+		var userTargetMessages = Lambda.filter(messages, function(message)
+		{
+			return message.from == targetUserId;
+		});
+		for (message in userTargetMessages)
 		{
 			var foundUser = Lambda.find(contacts, function(contact)
 			{
-				return contact.id == message.from;
+				return contact.user == Std.string(message.from);
 			});
 			if (foundUser != null)
 			{
@@ -254,14 +288,24 @@ class View
 		}
 	}
 
-	public function logout():Void
+	public function changeContactStatus(data):Void
 	{
+		// %{status: %{user: %{id: user_id, status: "online"}}}
+		for (contact in contacts)
+		{
+			if (contact.user == data.status.user.id)
+			{
+				contact.status = data.status.user.status;
+				renderContacts();
+				break;
+			}
+		}
 	}
 
 	public function render():Void
 	{
 		changeMain();
-		_renderContacts();
-		_renderMessages();
+		renderContacts();
+		renderMessages();
 	}
 }

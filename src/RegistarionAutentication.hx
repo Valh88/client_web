@@ -11,6 +11,7 @@ class RegistarionAutentication
 	private var _token:Null<String>;
 	var storage:Storage;
 	var socket:WebSocketClient;
+
 	public var runSocket:Function;
 
 	public function new(soket:WebSocketClient)
@@ -20,7 +21,7 @@ class RegistarionAutentication
 		token = storage.getItem("token");
 	}
 
-	public function getMe():Void
+	public function getMe(calback:Function):Void
 	{
 		if (_token != null)
 		{
@@ -31,6 +32,7 @@ class RegistarionAutentication
 				})
 				.then(function(data)
 				{
+					calback(data);
 					trace(data);
 				})
 				.catchError(function(error)
@@ -68,6 +70,7 @@ class RegistarionAutentication
 				trace(error);
 			});
 	}
+
 	public function login(username:String, password:String, func:Function):Void
 	{
 		var headers = new js.html.Headers([["Content-Type", "application/json"]]);

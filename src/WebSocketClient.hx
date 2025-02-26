@@ -1,3 +1,4 @@
+import haxe.Constraints.Function;
 import js.lib.Object;
 import js.Browser;
 import js.html.WebSocket;
@@ -10,6 +11,11 @@ class WebSocketClient
 	private var _url:String;
 	private var _socket:WebSocket;
 
+	public var addContacts:Function;
+	public var addMessages:Function;
+	public var addMessage:Function;
+	public var changeStatusContact:Function;
+
 	public function new(token:Null<String>)
 	{
 		this._token = token;
@@ -19,25 +25,28 @@ class WebSocketClient
 
 	public function connect():Void
 	{
-		_socket.onopen = function(event)
+		if (_token != null)
 		{
-			trace("WebSocket opened");
-			trace(event.data);
-			Browser.window.setInterval(function()
+			_socket.onopen = function(event)
 			{
-				if (_socket.readyState == js.html.WebSocket.OPEN)
+				trace("WebSocket opened");
+				trace(event.data);
+				Browser.window.setInterval(function()
 				{
-					_socket.send("ping");
-				} else
-				{
-					trace("WebSocket is not open. Current state: " + _socket.readyState);
-				}
-			}, 30000);
-			_socket.send("{\"type\":\"private\",\"message\":{\"from\":\"1\",\"to\":\"2\",\"message\":\"mewewqeqweqwe\"}}");
-		};
-		_onClose();
-		_onError();
-		_onMessage();
+					if (_socket.readyState == js.html.WebSocket.OPEN)
+					{
+						_socket.send("ping");
+					} else
+					{
+						trace("WebSocket is not open. Current state: " + _socket.readyState);
+					}
+				}, 30000);
+				// _socket.send("{\"type\":\"private\",\"message\":{\"from\":\"1\",\"to\":\"2\",\"message\":\"mewewqeqweqwe\"}}");
+			};
+			_onClose();
+			_onError();
+			_onMessage();
+		}
 	}
 
 	public var token(get, set):String;
@@ -48,10 +57,10 @@ class WebSocketClient
 	}
 
 	public function set_token(value):Null<String>
-		{
-			_token = value;
-			return _token;
-		}
+	{
+		_token = value;
+		return _token;
+	}
 
 	public function send(values:String):Void
 	{
@@ -60,6 +69,7 @@ class WebSocketClient
 
 	public function sendDynamic(values:Dynamic):Void
 	{
+		trace(values);
 		var data = toString(values);
 		_socket.send(data);
 	}
@@ -88,6 +98,19 @@ class WebSocketClient
 		{
 			var data = toObject(event.data);
 			trace(data);
+			if (Reflect.hasField(data, "contacts"))
+			{
+				addContacts(data);
+			} else if (Reflect.hasField(data, "new_messages"))
+			{
+				addMessages(data);
+			} else if (Reflect.hasField(data, "type"))
+			{
+				addMessage(data);
+			} else if (Reflect.hasField(data, "status"))
+			{
+				changeStatusContact(data);
+			}
 		};
 	}
 
@@ -97,5 +120,10 @@ class WebSocketClient
 		{
 			trace("WebSocket closed");
 		}
+	}
+
+	public function close():Void
+	{
+		_socket.close();
 	}
 }
