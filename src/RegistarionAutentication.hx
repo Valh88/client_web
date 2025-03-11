@@ -25,7 +25,7 @@ class RegistarionAutentication
 	{
 		if (_token != null)
 		{
-			Browser.window.fetch("http://127.0.0.1:4000/api/me?token=" + this?._token)
+			Browser.window.fetch("http://127.0.0.1:8080/api/me?token=" + this?._token)
 				.then(function(response)
 				{
 					return response.json();
@@ -56,7 +56,7 @@ class RegistarionAutentication
 				body: haxe.Json.stringify(data)
 			};
 
-		Browser.window.fetch("http://127.0.0.1:4000/api/registration", options)
+		Browser.window.fetch("http://127.0.0.1:8080/api/registration", options)
 			.then(function(response)
 			{
 				return response.json();
@@ -81,7 +81,7 @@ class RegistarionAutentication
 				headers: headers,
 				body: haxe.Json.stringify(data)
 			};
-		Browser.window.fetch("http://127.0.0.1:4000/api/login", options)
+		Browser.window.fetch("http://127.0.0.1:8080/api/login", options)
 			.then(function(response)
 			{
 				return response.json();
@@ -120,7 +120,7 @@ class RegistarionAutentication
 				headers: headers
 			};
 		storage.clear();
-		Browser.window.fetch("http://127.0.0.1:4000/api/me?token=" + this?._token, options)
+		Browser.window.fetch("http://127.0.0.1:8080/api/me?token=" + this?._token, options)
 			.then(function(response)
 			{
 				return response.json();
